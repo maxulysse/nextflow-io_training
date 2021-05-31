@@ -3,7 +3,7 @@
 A _process_ is the basic Nextflow computing primitive to execute foreign function i.e. custom
 scripts or tools.
 
-The process definition starts with keyword the ``process``, followed by process name and finally the process `body` delimited by curly brackets. The process body must contain a string which represents the command or, more generally, a script that is executed by it.
+The process definition starts with the keyword ``process``, followed by process name and finally the process `body` delimited by curly brackets. The process body must contain a string which represents the command or, more generally, a script that is executed by it.
 
 A basic process looks like the following example:
 
@@ -47,16 +47,15 @@ The `script` block is a string statement that defines the command that is execut
 A process contains one and only one script block, and it must be the last statement when the process contains input and output declarations.
 
 The script block can be a simple string or multi-line string. The latter simplifies the writing of non trivial scripts
-composed by multiple commands spanning over multiple lines. For example::
+composed by multiple commands spanning over multiple lines. For example:
 
 [source,nextflow,linenums]
 ----
 process example {
     script:
     """
-    blastp -db /data/blast -query query.fa -outfmt 6 > blast_result
-    cat blast_result | head -n 10 | cut -f 2 > top_hits
-    blastdbcmd -db /data/blast -entry_batch top_hits > sequences
+    grep '^@S' data/ggal/gut_1.fq > Fastq_headers
+    cat Fastq_headers | cut -d '.' -f2 > Uniq_Fastq_Names
     """
 }
 ----
@@ -127,7 +126,7 @@ process bar {
 }
 ----
 
-However this won't allow any more the usage of Nextflow variables in the command script.
+However this won't allow the usage of Nextflow variables any longer in the command script.
 
 Another alternative is to use a `shell` statement instead of `script` which uses a different
 syntax for Nextflow variable: `!{..}`. This allow to use both Nextflow and Bash variables in
@@ -190,7 +189,7 @@ The input block follows the syntax shown below:
 
 ```nextflow
 input:
-  <input qualifier> <input name> from <source channel>
+  <input qualifier> <input name>
 ```
 
 === Input values
@@ -199,15 +198,23 @@ The `val` qualifier allows you to receive data of any type as input. It can be a
 
 [source,nextflow,linenums]
 ----
+nextflow.enable.dsl=2
+
 num = Channel.from( 1, 2, 3 )
 
 process basicExample {
   input:
-  val x from num
+  val x 
 
   """
   echo process job $x
   """
+}
+
+workflow {
+   
+    myrun = basicExample(num)
+
 }
 ----
 
@@ -229,15 +236,21 @@ Nextflow will stage it in the process execution directory, and it can be access 
 
 [source,nextflow,linenums]
 ----
+nextflow.enable.dsl=2
+
 reads = Channel.fromPath( 'data/ggal/*.fq' )
 
 process foo {
     input:
-    file 'sample.fastq' from reads
+    file 'sample.fastq'
     script:
     """
-    your_command --reads sample.fastq
+    ls sample.fastq
     """
+}
+
+workflow{
+    result= foo(reads)
 }
 ----
 
@@ -245,15 +258,21 @@ The input file name can also be defined using a variable reference as shown belo
 
 [source,nextflow,linenums]
 ----
+nextflow.enable.dsl=2
+
 reads = Channel.fromPath( 'data/ggal/*.fq' )
 
 process foo {
     input:
-    file sample from reads
+    file sample
     script:
     """
-    your_command --reads $sample
+    ls  $sample
     """
+}
+
+workflow{
+    result= foo(reads)
 }
 ----
 
@@ -262,15 +281,23 @@ Only change the channel composition.
 
 [source,nextflow,linenums]
 ----
+nextflow.enable.dsl=2
+
 reads = Channel.fromPath( 'data/ggal/*.fq' )
 
 process foo {
     input:
-    file sample from reads.collect()
+    file sample
     script:
     """
-    your_command --reads $sample
+    ls -lh $sample
     """
+}
+
+workflow{
+
+   foo(reads.collect())
+
 }
 ----
 
@@ -282,15 +309,23 @@ Consider the following snippet:
 
 [source,nextflow,linenums]
 ----
-params.genome = 'data/ggal/transcriptome.fa'
+nextflow.enable.dsl=2
+
+params.genome = "$baseDir/data/ggal/transcriptome.fa"
 
 process foo {
     input:
-    file genome from params.genome
+    path genome
     script:
     """
-    your_command --reads $genome
+    ls -lh $genome
     """
+}
+
+workflow{
+
+   foo(params.genome)
+
 }
 ----
 
@@ -305,15 +340,23 @@ handles string values as file objects. The following example works as expected:
 
 [source,nextflow,linenums]
 ----
+nextflow.enable.dsl=2
+
 params.genome = "$baseDir/data/ggal/transcriptome.fa"
 
 process foo {
     input:
-    path genome from params.genome
+    path genome
     script:
     """
-    your_command --reads $genome
+    echo your_command --reads $genome
     """
+}
+
+workflow {
+  
+    foo (params.genome)
+
 }
 ----
 
@@ -335,15 +378,26 @@ Consider the following example:
 
 [source,nextflow,linenums]
 ----
+nextflow.enable.dsl=2
+
 process foo {
   echo true
   input:
-  val x from Channel.from(1,2,3)
-  val y from Channel.from('a','b','c')
+  val x
+  val y
   script:
    """
    echo $x and $y
    """
+}
+
+input1 = Channel.from(1,2,3)
+input2 = Channel.from('a','b','c')
+
+workflow{
+
+  foo (input1,input2)
+
 }
 ----
 
@@ -365,15 +419,26 @@ For example:
 
 [source,nextflow,linenums]
 ----
+nextflow.enable.dsl=2
+
 process foo {
   echo true
   input:
-  val x from Channel.from(1,2)
-  val y from Channel.from('a','b','c','d')
+  val x
+  val y
   script:
    """
    echo $x and $y
    """
+}
+
+input1 = Channel.from(1,2)
+input2 = Channel.from('a','b','c','d')
+
+workflow{
+
+  foo (input1,input2)
+
 }
 ----
 
@@ -385,15 +450,27 @@ To better understand this behavior compare the previous example with the followi
 
 [source,nextflow,linenums]
 ----
+nextflow.enable.dsl=2
+
 process bar {
   echo true
   input:
-  val x from Channel.value(1)
-  val y from Channel.from('a','b','c')
+  val x
+  val y
   script:
    """
    echo $x and $y
    """
+}
+
+input1 = Channel.value(1)
+input2 = Channel.from('a','b','c')
+
+
+workflow{
+
+  bar (input1, input2)
+
 }
 ----
 
@@ -408,17 +485,27 @@ The `each` qualifier allows you to repeat the execution of a process for each it
 
 [source,nextflow,linenums]
 ----
+nextflow.enable.dsl=2
+
 sequences = Channel.fromPath('data/prots/*.tfa')
 methods = ['regular', 'expresso', 'psicoffee']
 
 process alignSequences {
+  echo true
   input:
-  path seq from sequences
-  each mode from methods
+  path seq
+  each mode
 
   """
-  t_coffee -in $seq -mode $mode
+  echo t_coffee -in $seq -mode $mode
   """
+}
+
+
+workflow{
+  
+  alignSequences(sequences,methods)
+
 }
 ----
 
@@ -447,21 +534,28 @@ this is a value which has been defined in the _input_ declaration block, as show
 
 [source,nextflow,linenums]
 ----
+nextflow.enable.dsl=2
+
 methods = ['prot','dna', 'rna']
 
 process foo {
   input:
-  val x from methods
+  val x
 
   output:
-  val x into receiver
+  val x
 
   """
   echo $x > file
   """
 }
 
-receiver.view { "Received: $it" }
+workflow{
+
+  receiver_ch = foo(Channel.from(methods))
+  receiver_ch.view { "Received: $it" }
+
+}
 ----
 
 === Output files
@@ -470,17 +564,25 @@ The `file` qualifier allows to output one or more files, produced by the process
 
 [source,nextflow,linenums]
 ----
+nextflow.enable.dsl=2
+
 process randomNum {
 
     output:
-    file 'result.txt' into numbers
+    file 'result.txt'
 
     '''
     echo $RANDOM > result.txt
     '''
 }
 
-numbers.view { "Received: " + it.text }
+
+workflow{
+
+  receiver_ch = randomNum()
+  receiver_ch.view { "Received: " + it.text }
+
+}
 ----
 
 In the above example the process `randomNum` creates a file named `result.txt` containing a random number.
@@ -498,19 +600,27 @@ This allows to _capture_ multiple files into a list object and output them as a 
 
 [source,nextflow,linenums]
 ----
+nextflow.enable.dsl=2
+
 process splitLetters {
 
     output:
-    file 'chunk_*' into letters
+    file 'chunk_*'
 
     '''
     printf 'Hola' | split -b 1 - chunk_
     '''
 }
 
-letters
-    .flatMap()
-    .view { "File: ${it.name} => ${it.text}" }
+
+
+workflow{
+    letters = splitLetters()  
+    letters
+        .flatMap()
+        .view { "File: ${it.name} => ${it.text}" }
+
+}
 ----
 
 it prints:
@@ -542,17 +652,30 @@ For example::
 
 [source,nextflow,linenums]
 ----
+nextflow.enable.dsl=2
+
+sequences = Channel.fromPath('data/prots/*.tfa')
+species = ['Human','Mouse']
+
+
 process align {
   input:
-  val x from species
-  file seq from sequences
+  val x
+  each seq
 
   output:
-  file "${x}.aln" into genomes
+  file "${x}.aln"
 
   """
-  t_coffee -in $seq > ${x}.aln
+  echo t_coffee $seq > ${x}.aln
   """
+}
+
+
+workflow{
+
+  genomes = align(Channel.from(species),sequences)
+
 }
 ----
 
@@ -571,20 +694,28 @@ following by the definition of each tuple element in the tuple.
 
 [source,nextflow,linenums]
 ----
+nextflow.enable.dsl=2
+
 reads_ch = Channel.fromFilePairs('data/ggal/*_{1,2}.fq')
 
 process foo {
   input:
-    tuple val(sample_id), file(sample_files) from reads_ch
+    tuple val(sample_id), file(sample_id)
   output:
-    tuple val(sample_id), file('sample.bam') into bam_ch
+    tuple val(sample_id), file('sample.bam')
   script:
   """
-    your_command_here --reads $sample_id > sample.bam
+    echo your_command_here --reads $sample_id > sample.bam
   """
 }
 
-bam_ch.view()
+
+workflow{
+
+    bam_ch = foo(reads_ch)
+    bam_ch.view()
+
+}
 ----
 
 TIP: In previous versions of Nextflow `tuple` was called `set` but it was used exactly with the 
@@ -602,22 +733,30 @@ It is useful to enable/disable the process execution depending the state of vari
 
 [source,nextflow,linenums]
 ----
+nextflow.enable.dsl=2
+
 params.dbtype = 'nr'
 params.prot = 'data/prots/*.tfa'
 proteins = Channel.fromPath(params.prot)
 
 process find {
   input:
-  file fasta from proteins
-  val type from params.dbtype
+  file fasta
+  val type
 
   when:
   fasta.name =~ /^BB11.*/ && type == 'nr'
 
   script:
   """
-  blastp -query $fasta -db nr
+  echo blastp -query $fasta -db nr
   """
+}
+
+workflow{
+
+    result = find(proteins, params.dbtype)
+
 }
 ----
 
@@ -667,19 +806,33 @@ the process that's creating such file. For example:
 
 [source,nextflow,linenums,options="nowrap"]
 ----
+nextflow.enable.dsl=2
+
+reads_ch = Channel.fromFilePairs('data/ggal/*_{1,2}.fq')
+params.transcriptome = "data/ggal/transcriptome.fa"
+index = Channel.fromPath(params.transcriptome)
+
 process makeBams {
-    publishDir "/some/directory/bam_files", mode: 'copy'
+    publishDir "$baseDir/bam_files", mode: 'copy'
+    echo true
 
     input:
-    file index from index_ch
-    tuple val(name), file(reads) from reads_ch
+    file index
+    tuple val(name), file(reads)
 
     output:
-    tuple val(name), file ('*.bam') into star_aligned
+    tuple val(name), file ('*.bam')
 
     """
-    STAR --genomeDir $index --readFilesIn $reads
+    echo STAR --genomeDir $index --readFilesIn $reads
     """
+}
+
+
+workflow {
+    
+    makeBams(index,reads_ch)
+
 }
 ----
 
@@ -697,12 +850,12 @@ You can use more then one `publishDir` to keep different outputs in separate dir
 
 [source,nextflow,linenums,options="nowrap"]
 ----
+nextflow.enable.dsl=2
+
 params.reads = 'data/reads/*_{1,2}.fq.gz'
 params.outdir = 'my-results'
 
-Channel
-    .fromFilePairs(params.reads, flat: true)
-    .set{ samples_ch }
+samples_ch = Channel.fromFilePairs(params.reads, flat: true)
 
 process foo {
   publishDir "$params.outdir/$sampleId/", pattern: '*.fq'
@@ -710,7 +863,7 @@ process foo {
   publishDir "$params.outdir/$sampleId/outlooks", pattern: '*_outlook.txt'
 
   input:
-    set sampleId, file('sample1.fq.gz'), file('sample2.fq.gz') from samples_ch
+    tuple val(sampleId), file('sample1.fq.gz'), file('sample2.fq.gz')
   output:
     file "*"
   script:
@@ -724,6 +877,12 @@ process foo {
     head -n 50 sample1.fq > sample1_outlook.txt
     head -n 50 sample2.fq > sample2_outlook.txt
   """
+}
+
+workflow{
+
+  out_channel = foo(samples_ch)
+
 }
 ----
 

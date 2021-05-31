@@ -51,6 +51,24 @@ process quantification {
     """
 }
 
+
+process fastqc {
+    tag "FASTQC on $sample_id"
+
+    input:
+    tuple sample_id, path(reads) 
+
+    output:
+    path "fastqc_${sample_id}_logs"
+
+    script:
+    """
+    mkdir fastqc_${sample_id}_logs
+    fastqc -o fastqc_${sample_id}_logs -f fastq -q ${reads}
+    """  
+}  
+
+
 workflow {
 
     index_ch = index(Channel.from(params.transcriptome))
@@ -60,5 +78,7 @@ workflow {
     .set { read_pairs_ch } 
 
     quant_ch = quantification(index_ch,read_pairs_ch)
-
+    
+    fastqc_ch = fastqc(read_pairs_ch)
 }
+

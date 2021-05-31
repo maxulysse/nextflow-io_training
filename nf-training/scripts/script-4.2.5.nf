@@ -20,4 +20,3 @@ workflow{
 	alignSequences(sequences,methods)
 
 }
-

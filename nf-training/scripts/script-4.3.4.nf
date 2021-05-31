@@ -13,7 +13,7 @@ process align {
   file "${x}.aln"
 
   """
-  ls $seq > ${x}.aln
+  echo t_coffee $seq > ${x}.aln
   """
 }
 

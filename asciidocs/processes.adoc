@@ -359,7 +359,7 @@ When this condition is verified, it consumes the input values coming from the re
 
 This means channel values are consumed serially one after another and the first empty channel cause the process execution to stop even if there are other values in other channels.
 
-*What does it happen when not all channels have the same cardinality (i.e. they emit a different number of elements)?*
+*What happens when channels do not have the same cardinality (i.e. they emit a different number of elements)?*
 
 For example:
 
@@ -377,9 +377,9 @@ process foo {
 }
 ----
 
-In the above example the process is executed only two time, because when a channel has no more data to be processed it stops the process execution.
+In the above example the process is executed only two times, because when a channel has no more data to be processed it stops the process execution.
 
-IMPORTANT: Note however that _value_ channel do not affect the process termination.
+IMPORTANT: Note however that the _value_ channel does not affect the process termination.
 
 To better understand this behavior compare the previous example with the following one:
 

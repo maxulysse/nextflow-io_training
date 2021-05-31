@@ -40,16 +40,18 @@ process quantification {
      
     input:
     path index 
-    tuple pair_id, path(reads)
+    tuple val(sample_id), path(reads)
  
     output:
-    path pair_id
+    path sample_id
  
     script:
     """
-    salmon quant --threads $task.cpus --libType=U -i $index -1 ${reads[0]} -2 ${reads[1]} -o $pair_id
+    salmon quant --threads $task.cpus --libType=U -i $index -1 ${reads[0]} -2 ${reads[1]} -o $sample_id
     """
 }
+
+
 
 workflow {
 
@@ -59,6 +61,6 @@ workflow {
     .fromFilePairs( params.reads, checkIfExists: true )
     .set { read_pairs_ch } 
 
-    quant_ch = quantification(index_ch,read_pairs_ch)
+    quant_ch = quantification(index_ch, read_pairs_ch)
 
 }

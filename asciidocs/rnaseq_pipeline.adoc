@@ -64,6 +64,8 @@ The second example adds the `index` process.
 
 [source,nextflow,linenums]
 ----
+nextflow.enable.dsl=2
+
 /*
  * pipeline input parameters
  */
@@ -86,18 +88,25 @@ println """\
  * define the `index` process that create a binary index
  * given the transcriptome file
  */
+
 process index {
 
     input:
-    path transcriptome from params.transcriptome
+    path transcriptome
 
     output:
-    path 'index' into index_ch
+    path 'index'
 
     script:
     """
     salmon index --threads $task.cpus -t $transcriptome -i index
     """
+}
+
+workflow {
+
+    index_ch = index(Channel.from(params.transcriptome))
+
 }
 ----
 
@@ -119,8 +128,8 @@ as shown below:
 
 This time it works because it uses the Docker container `nextflow/rnaseq-nf` defined in the
 `nextflow.config` file. If you are running this script locally then you need to download docker
-to your machine then login to activate docker and allow the script to download the container 
-containing the run scripts (learn more about docker later: https://www.https://www.nextflow.io/docs/latest/docker.html[here] ).
+to your machine then login to allow the script to find and download the container 
+and the run scripts (learn more about docker https://www.https://www.nextflow.io/docs/latest/docker.html[here] ).
 
 In order to avoid to add the option `-with-docker` add the following line in the `nextflow.config` file:
 

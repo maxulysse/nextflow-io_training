@@ -1,0 +1,335 @@
+= DSL2 and modules
+
+== Basic concepts
+
+DSL2 is our new syntax extension, developed primarily to improve readability and allow the use of modules. 
+
+Despite this upgrade, DSL1 is still a valid way of writing pipelines, and indeed many public pipelines are written this way. To ensure backward compatibility, you can use DSL2 by adding the following line at the beginning of each workflow script: 
+
+----
+nextflow.enable.dsl=2
+----
+
+DSL2 core features include:
+
+* Separation of processes from their invocation.
+* Use of a `workflow` directive to execute specific processes.
+* Archiving of processes into modules.
+* Update of syntax (pipe operator, & operator and channel forking)
+
+To explain how to implement these changes and the improvements, we will go through a conversion of the RNA-Seq pipeline (`script1.nf` to `script7.nf`)
+
+== Converting a pipeline to DSL2
+
+[discrete]
+=== Exercise
+
+Starting with `script1.nf`, try adding the dsl decalaration, and running Nextflow.
+
+You will notice that nothing has changed, as many of the core features of dsl1 have not changed to dsl2, including the setting of `params`.
+
+[discrete]
+=== Exercise
+
+Now, add the same to `script2.nf`, remembering to ensure you have the correct docker settings in your `nextflow.config` file, or using the the `-with-docker` flag.
+
+You will notice that salmon is not executed as we would expect if you run with without dsl2. 
+
+This is because there is no workflow definition.
+
+=== Workflow definitions
+
+The `workflow` keyword allows the definition of sub-workflow components that enclose the invocation of one or more processes and operators:
+
+[discrete]
+=== Exercise
+
+Try adding the following workflow scope to the end of `script2.nf`
+
+[source,nextflow,linenums]
+----
+workflow {
+    index()
+}
+----
+
+Running this command will still lead to an error, this is because DSL2 now removes the need for `from` and `into` in the input and output scopes. Requiring instead that channel input/outputs are specified within the workflow scope (or before the workflow).
+
+[discrete]
+=== Exercise
+
+Try removing `from` and `into` and respective channels. Then change the workflow scope to the following:
+
+[source,nextflow,linenums]
+----
+workflow {
+    index(params.transcriptome_file)
+}
+----
+
+Now the index process should run sucessfully. What we have now done is separate the defintion of processes from their invocation. The advantage of doign this is that we can now reuse processes (which we will cover later) and we have a simple small workflow scope to monitor large pipelines in a simple description. It also now does not expect a certain channel input name, but accepts any channel that adheres to the same structure that the process expects (in the above case, it expects a `path`).
+
+=== Process outputs within a workflow 
+
+A process output can also be accessed using the `out` attribute for the respective process object.
+
+For the second process in the script `quantification` (from `script4.nf`), it requires the output of the first process `index`, plus the input reads channel. 
+
+We can specify this as follows:
+
+[source,nextflow,linenums]
+----
+workflow {
+    index(params.transcriptome_file)
+    quantification(index.out, read_pairs_ch)
+}
+----
+
+Now try running this script...
+
+Again, it should fail, but here we see a useful error message explaining why :
+
+[source,nextflow]
+----
+Unqualified input value declaration has been deprecated - replace `tuple pair_id,..` with `tuple val(pair_id),..`
+----
+
+In DSL2, we do not allow unqualified input declarations (tuple paid_id), and indeed it tells you how to change your above code to ensure it doesn't result in error. Try changing this and running the script again.
+
+Success. This should have run to completion, once you have fixed this issue, and your script should look something like this: 
+
+.Click Here:
+[%collapsible]
+====
+[source,nextflow,linenums]
+----
+nextflow.enable.dsl=2
+/* 
+ * pipeline input parameters 
+ */
+params.reads = "$baseDir/data/ggal/gut_{1,2}.fq"
+params.transcriptome_file = "$baseDir/data/ggal/transcriptome.fa"
+params.multiqc = "$baseDir/multiqc"
+params.outdir = "results"
+
+log.info """\
+         R N A S E Q - N F   P I P E L I N E    
+         ===================================
+         transcriptome: ${params.transcriptome_file}
+         reads        : ${params.reads}
+         outdir       : ${params.outdir}
+         """
+         .stripIndent()
+
+ 
+/* 
+ * define the `index` process that create a binary index 
+ * given the transcriptome file
+ */
+process index {
+    
+    input:
+    path transcriptome
+     
+    output:
+    path 'index'
+
+    script:       
+    """
+    salmon index --threads $task.cpus -t $transcriptome -i index
+    """
+}
+
+
+Channel 
+    .fromFilePairs( params.reads, checkIfExists: true )
+    .set { read_pairs_ch } 
+
+process quantification {
+     
+    input:
+    path index
+    tuple val(pair_id), path(reads)
+ 
+    output:
+    path pair_id
+ 
+    script:
+    """
+    salmon quant --threads $task.cpus --libType=U -i $index -1 ${reads[0]} -2 ${reads[1]} -o $pair_id
+    """
+}
+
+workflow {
+    index(params.transcriptome_file)
+    quantification(index.out, read_pairs_ch)
+}
+----
+====
+
+
+[discrete]
+=== Exercise
+
+Now try adding the `fastqc` process into the pipeline yourself!
+
+
+.For the answer, click Here:
+[%collapsible]
+====
+[source,nextflow,linenums]
+----
+nextflow.enable.dsl=2
+/* 
+ * pipeline input parameters 
+ */
+params.reads = "$baseDir/data/ggal/gut_{1,2}.fq"
+params.transcriptome_file = "$baseDir/data/ggal/transcriptome.fa"
+params.multiqc = "$baseDir/multiqc"
+params.outdir = "results"
+
+log.info """\
+         R N A S E Q - N F   P I P E L I N E    
+         ===================================
+         transcriptome: ${params.transcriptome_file}
+         reads        : ${params.reads}
+         outdir       : ${params.outdir}
+         """
+         .stripIndent()
+
+ 
+/* 
+ * define the `index` process that create a binary index 
+ * given the transcriptome file
+ */
+process index {
+    
+    input:
+    path transcriptome
+     
+    output:
+    path 'index'
+
+    script:       
+    """
+    salmon index --threads $task.cpus -t $transcriptome -i index
+    """
+}
+
+
+Channel 
+    .fromFilePairs( params.reads, checkIfExists: true )
+    .set { read_pairs_ch } 
+
+process quantification {
+     
+    input:
+    path index
+    tuple val(pair_id), path(reads)
+ 
+    output:
+    path pair_id
+ 
+    script:
+    """
+    salmon quant --threads $task.cpus --libType=U -i $index -1 ${reads[0]} -2 ${reads[1]} -o $pair_id
+    """
+}
+
+
+process fastqc {
+    tag "FASTQC on $pair_id"
+
+    input:
+    tuple val(pair_id), path(reads)
+
+    output:
+    path "fastqc_${pair_id}_logs"
+
+
+    script:
+    """
+    mkdir fastqc_${pair_id}_logs
+    fastqc -o fastqc_${pair_id}_logs -f fastq -q ${reads}
+    """  
+}  
+
+workflow {
+    index(params.transcriptome_file)
+    quantification(index.out, read_pairs_ch)
+    fastqc(read_pairs_ch)
+}
+----
+====
+
+==== Process named output
+
+The process output definition allows the use of the `emit` option to define a name identifier that can be used to reference the channel in the external scope. For example, in `index` we can use :
+
+[source,nextflow,linenums]
+----
+    output:
+    path 'index', emit: my_index
+----
+
+Then we can access it in the workflow scope using:
+
+[source,nextflow,linenums]
+----
+workflow {
+    index(params.transcriptome_file)
+    quantification(index.out.my_index, read_pairs_ch)
+    fastqc(read_pairs_ch)
+}
+----
+
+TIP: The same can be done for naming the `stdout`, using `emit`.
+
+=== Creating modules
+
+Now we have a basic understanding of DSL2, we can expand this a little more by taking our processes and storing them in a module file which we can then call in the main `main.nf` script. These modules can then be reused in any other pipeline just by putting the module folder in the correct place and calling them correctly within the script.
+
+To do this. Create a folder called `modules` (can be called anything you like), then copy and paste the processes you have written already into a file called `my-modules.nf` in the `modules directory.`
+
+Then, take the dsl2 script you have been working on and remove all the processes, followed by the addition of the following module calls:
+
+[source,nextflow,linenums]
+----
+// import modules
+include { index } from './modules/my-modules.nf'
+include { quantification } from './modules/my-modules.nf'
+include { fastqc } from './modules/my-modules.nf'
+----
+
+Now Nextflow knows where to find your processes. 
+
+TIP: Normally we name the main nextflow script `main.nf`. We also may separate out each process into a single `.nf` file.
+
+We can also write the above module import line as follows:
+
+[source,nextflow,linenums]
+----
+// import modules
+include { index; quantification; fastqc } from './modules/my-modules.nf'
+----
+
+If we want to run the same process (module) twice, then we have to create an alias, as shown:
+
+[source,nextflow,linenums]
+----
+// import modules
+include { index } from './modules/my-modules.nf'
+include { index as index_again } from './modules/my-modules.nf'
+----
+
+Then your workflow would be as follows:
+
+[source,nextflow,linenums]
+----
+workflow {
+    index(params.transcriptome_file)
+    index_again(params.transcriptome_file)
+}
+----
+
+These are the main concepts, but there are various additional extensions and syntax that are useful to learn. These documents are found https://www.nextflow.io/docs/latest/dsl2.html[here] 

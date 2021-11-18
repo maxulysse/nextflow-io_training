@@ -16,7 +16,7 @@ You should also ensure you are using an up to date version of nextflow:
 nextflow info
 ----
 
-IMPORTANT: You should be using Nextflow version 21 or later. Add `export NXF_VER=21.10.0` (or other edge versions) before running `nextflow info` to change versions.
+IMPORTANT: You should be using Nextflow version 21 or later. Type `export NXF_VER=21.10.0` in your terminal (or other v21+ version) before running `nextflow info` to change versions.
 
 DSL2 core features include:
 
@@ -28,7 +28,7 @@ DSL2 core features include:
 
 **4.** Update of syntax (pipe operator, & operator and channel forking)
 
-To explain how to implement these changes and the improvements, we will go through a conversion of the RNA-Seq pipeline (`script1.nf` to `script7.nf`)
+To explain how to implement these changes and the improvements, we will go through a conversion of the RNA-Seq pipeline (`script1.nf` to `script7.nf`).
 
 == Converting a pipeline to DSL2
 
@@ -318,6 +318,51 @@ Now Nextflow knows where to find your processes.
 
 TIP: Normally we name the main nextflow script `main.nf`. We also may separate out each module process into a single `.nf` file for readability.
 
+.Click here to see what your main script should look like at this stage:
+[%collapsible]
+====
+[source,nextflow,linenums]
+----
+nextflow.enable.dsl=2
+/* 
+ * pipeline input parameters 
+ */
+params.reads = "$baseDir/data/ggal/gut_{1,2}.fq"
+params.transcriptome_file = "$baseDir/data/ggal/transcriptome.fa"
+params.multiqc = "$baseDir/multiqc"
+params.outdir = "results"
+
+log.info """\
+         R N A S E Q - N F   P I P E L I N E    
+         ===================================
+         transcriptome: ${params.transcriptome_file}
+         reads        : ${params.reads}
+         outdir       : ${params.outdir}
+         """
+         .stripIndent()
+
+ 
+/* 
+ * define the `index` process that create a binary index 
+ * given the transcriptome file
+ */
+
+// import modules
+include { index } from './modules/my-modules.nf'
+include { quantification } from './modules/my-modules.nf'
+include { fastqc } from './modules/my-modules.nf'
+
+
+read_pairs_ch = Channel .fromFilePairs(params.reads)
+
+workflow {
+    index(params.transcriptome_file)
+    quantification(index.out, read_pairs_ch)
+    fastqc(read_pairs_ch)
+}
+----
+====
+
 We can also write the above module import line as follows:
 
 [source,nextflow,linenums]
@@ -342,6 +387,79 @@ Then your workflow would be as follows:
 workflow {
     index(params.transcriptome_file)
     index_again(params.transcriptome_file)
+}
+----
+
+=== Module parameters
+
+A module script can define one or more parameters using the same syntax as Nextflow workflow scripts (as well as defining workflow or defined functions). To explore this, lets add a published directory to the `fastqc` module in 'modules/my-modules.nf':
+
+[source,nextflow,linenums]
+----
+publishDir params.fastqcdir, mode:'copy'
+----
+
+Then set a new parameter at the top of the `my-module.nf` file :
+
+[source,nextflow,linenums]
+----
+params.fastqcdir = "fastqc_results"
+----
+
+These parameters are then included when you run the main Nextflow script.
+
+If you need to specifically import a parameter with a module without effecting the external scope, you can use the following syntax:
+
+[source,nextflow,linenums]
+----
+include { fastqc } from './modules/my-modules.nf' addParams(foo: 'fastqcdir')
+----
+
+=== More on workflows
+
+There are a few extra attributes to know about workflows.
+
+* Workflows can have a defined name themselves and can declare one or more input channels:
+
+[source,nextflow,linenums]
+----
+workflow my_pipeline {
+    take: data
+    main:
+    foo(data)
+    bar(foo.out)
+}
+----
+
+IMPORTANT: When the `take` keyword is used, the beginning of the workflow body needs to be identified with the `main` keyword.
+
+* Workflows defined in your script or imported by a module inclusion can be invoked and composed as any other process in your application.
+
+[source,nextflow,linenums]
+----
+workflow flow1 {
+    take: data
+    main:
+        foo(data)
+        bar(foo.out)
+    emit:
+        bar.out
+}
+
+workflow flow2 {
+    take: data
+    main:
+        foo(data)
+        baz(foo.out)
+    emit:
+        baz.out
+}
+
+workflow {
+    take: data
+    main:
+      flow1(data)
+      flow2(flow1.out)
 }
 ----
 

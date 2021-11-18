@@ -17,6 +17,7 @@ DSL2 core features include:
 * Archiving of processes into modules.
 * Update of syntax (pipe operator, & operator and channel forking)
 
+IMPORTANT: If you have already completed section 3 of this tutorial (RNA-Seq pipeline), you can also skip to the next section, which explains the same content in the context of the RNA-Seq exercise.
 
 == Process
 

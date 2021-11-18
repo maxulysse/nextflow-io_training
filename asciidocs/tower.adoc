@@ -233,9 +233,8 @@ To create a new Organization:
 +
 WARNING: A valid name for the organization must follow specific pattern. Please refer the UI for further instructions.
 +
-
 3. The rest of the fields such as Description, Location, Website URL and Logo Url are optional.
-
++
 4. Once the details are filled-in, you can access the newly created organization using the organizations page, which lists all of your organizations.
 +
 --

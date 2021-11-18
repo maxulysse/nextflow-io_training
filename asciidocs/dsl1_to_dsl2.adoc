@@ -20,10 +20,13 @@ IMPORTANT: You should be using Nextflow version 21 or later. Add `export NXF_VER
 
 DSL2 core features include:
 
-1. Separation of processes from their invocation.
-2. Use of a `workflow` directive to execute specific processes.
-3. Archiving of processes into modules.
-4. Update of syntax (pipe operator, & operator and channel forking)
+**1.** Separation of processes from their invocation.
+
+**2.** Use of a `workflow` directive to execute specific processes.
+
+**3.** Archiving of processes into modules.
+
+**4.** Update of syntax (pipe operator, & operator and channel forking)
 
 To explain how to implement these changes and the improvements, we will go through a conversion of the RNA-Seq pipeline (`script1.nf` to `script7.nf`)
 
@@ -293,7 +296,7 @@ workflow {
 }
 ----
 
-TIP: The same can be done for naming the `stdout`, using `emit`.
+TIP: The same can also be done for naming the `stdout`, using `emit`.
 
 === Creating modules
 
@@ -343,3 +346,4 @@ workflow {
 ----
 
 These are the main concepts, but there are various additional extensions and syntax that are useful to learn. These documents are found https://www.nextflow.io/docs/latest/dsl2.html[here].
+

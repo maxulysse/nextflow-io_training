@@ -463,5 +463,14 @@ workflow {
 }
 ----
 
+It is in this way that most DSL2 pipelines are written.
+
+[discrete]
+=== Exercise
+
+Check out our public repo in DSL2 to see how Nextflow is calling the `rnaseq.nf` workflow, which itself `include`s multiple subworkflows (`INDEX`, `QUANT` and `FASTQC`). Then emits the output into the `main.nf` workflow script.
+https://github.com/nextflow-io/rnaseq-nf/blob/dsl2/modules/rnaseq.nf[Click here]
+
+
 These are the main concepts, but there are various additional extensions and syntax that are useful to learn. These documents are found https://www.nextflow.io/docs/latest/dsl2.html[here].
 

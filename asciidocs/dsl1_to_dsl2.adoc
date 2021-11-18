@@ -1,10 +1,8 @@
-= DSL2 and modules
+= Converting a pipeline from DSL2 to DSL2
 
 == Basic concepts
 
-DSL2 is our new syntax extension, developed primarily to improve readability and allow the use of modules. 
-
-Despite this upgrade, DSL1 is still a valid way of writing pipelines, and indeed many public pipelines are written this way. To ensure backward compatibility, you can use DSL2 by adding the following line at the beginning of each workflow script: 
+DSL2 is our new syntax extension, here we describe a run through to convert the RNA-Seq pipeline we wrote in Section 3.
 
 ----
 nextflow.enable.dsl=2
@@ -24,9 +22,9 @@ To explain how to implement these changes and the improvements, we will go throu
 [discrete]
 === Exercise
 
-Starting with `script1.nf`, try adding the dsl decalaration, and running Nextflow.
+Starting with `script1.nf`, try adding the DSL2 decalaration, and running Nextflow.
 
-You will notice that nothing has changed, as many of the core features of dsl1 have not changed to dsl2, including the setting of `params`.
+You will notice that nothing has changed, as many of the core features of DSL1 have not changed to DSL2, including the setting of `params`.
 
 [discrete]
 === Exercise

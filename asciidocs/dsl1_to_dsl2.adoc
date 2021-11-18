@@ -408,11 +408,11 @@ params.fastqcdir = "fastqc_results"
 
 These parameters are then included when you run the main Nextflow script.
 
-If you need to specifically import a parameter with a module without effecting the external scope, you can use the following syntax:
+If you need to specifically extend the module parameters without effecting the external scope, you can use the following syntax:
 
 [source,nextflow,linenums]
 ----
-include { fastqc } from './modules/my-modules.nf' addParams(foo: 'fastqcdir')
+include { fastqc } from './modules/my-modules.nf' addParams(fastqcdir: 'New_folder')
 ----
 
 === More on workflows
@@ -468,7 +468,7 @@ It is in this way that most DSL2 pipelines are written.
 [discrete]
 === Exercise
 
-Check out our public repo in DSL2 to see how Nextflow is calling the `rnaseq.nf` workflow, which itself `include`s multiple subworkflows (`INDEX`, `QUANT` and `FASTQC`). Then emits the output into the `main.nf` workflow script.
+Check out our public repo in DSL2 to see how Nextflow is calling the `rnaseq.nf` workflow, which itself `include` 's multiple subworkflows (`INDEX`, `QUANT` and `FASTQC`). Then emits the output into the `main.nf` workflow script.
 https://github.com/nextflow-io/rnaseq-nf/blob/dsl2/modules/rnaseq.nf[Click here]
 
 
